@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The City Pulse — Emergency Command</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <h1>THE CITY PULSE</h1>
+  <p class="subtitle">Emergency Command Terminal — Storm Response Protocol</p>
+</header>
+
+<main class="app">
+
+  <section class="map-panel">
+    <h2>City Map</h2>
+
+    <div class="tray" id="tray">
+      <div class="tray-token" data-type="Medical">
+        <span class="tray-icon">⚕</span>
+        <span class="tray-label">Medical</span>
+        <span class="tray-count" id="tray-count-Medical">3</span>
+      </div>
+      <div class="tray-token" data-type="Power">
+        <span class="tray-icon">⚡</span>
+        <span class="tray-label">Power</span>
+        <span class="tray-count" id="tray-count-Power">4</span>
+      </div>
+      <div class="tray-token" data-type="Transport">
+        <span class="tray-icon">🚌</span>
+        <span class="tray-label">Transport</span>
+        <span class="tray-count" id="tray-count-Transport">2</span>
+      </div>
+    </div>
+    <p class="tray-hint" id="tray-hint">Select a unit above, then click a matching slot to deploy it. Click a filled slot to recall a unit.</p>
+
+    <div class="districts" id="districts">
+      <div class="district" data-district="Centrum">
+        <h3>Centrum</h3>
+        <div class="slots">
+          <div class="slot" data-type="Medical"><span class="slot-label">Medical</span><span class="slot-count">0</span></div>
+          <div class="slot" data-type="Power"><span class="slot-label">Power</span><span class="slot-count">0</span></div>
+          <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
+        </div>
+      </div>
+      <div class="district" data-district="Noord">
+        <h3>Noord</h3>
+        <div class="slots">
+          <div class="slot" data-type="Medical"><span class="slot-label">Medical</span><span class="slot-count">0</span></div>
+          <div class="slot" data-type="Power"><span class="slot-label">Power</span><span class="slot-count">0</span></div>
+          <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
+        </div>
+      </div>
+      <div class="district" data-district="Zuidoost">
+        <h3>Zuidoost</h3>
+        <div class="slots">
+          <div class="slot" data-type="Medical"><span class="slot-label">Medical</span><span class="slot-count">0</span></div>
+          <div class="slot" data-type="Power"><span class="slot-label">Power</span><span class="slot-count">0</span></div>
+          <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="terminal-panel">
+    <div class="terminal-log" id="log"></div>
+    <div class="terminal-input-row">
+      <span class="prompt">&gt;</span>
+      <input id="terminal-input" type="text" autocomplete="off" spellcheck="false" placeholder="type 'help'" />
+    </div>
+  </section>
+
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
