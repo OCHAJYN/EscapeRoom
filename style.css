@@ -45,11 +45,11 @@ body {
 }
 
 .app {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 20px;
   padding: 20px;
-  max-width: 1300px;
+  max-width: 900px; /* narrowed slightly so a single column is easier to read */
   margin: 0 auto;
 }
 
@@ -71,6 +71,96 @@ body {
   font-size: 1.1rem;
   color: var(--text);
 }
+
+/* ---------- Mission Briefing ---------- */
+.mission-briefing {
+  background: #1a2436;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.mission-briefing h2 {
+  margin: 0 0 10px !important;
+  color: var(--accent) !important;
+  font-size: 1.3rem !important;
+  text-transform: uppercase;
+}
+
+.mission-briefing h3 {
+  margin: 16px 0 8px;
+  color: #fff;
+  font-size: 1.05rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+
+.mission-briefing p {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
+
+.mission-briefing ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.9rem;
+}
+
+.mission-briefing li {
+  margin-bottom: 6px;
+}
+
+.mission-briefing strong {
+  color: var(--accent);
+}
+
+/* ---------- Field Manual ---------- */
+
+.field-manual {
+  background: #131a2a;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+.field-manual h2 {
+  margin: 0 0 12px !important;
+  color: var(--accent) !important;
+  font-size: 1.2rem !important;
+  letter-spacing: 0.05em;
+}
+.manual-section {
+  margin-bottom: 12px;
+}
+.manual-section strong {
+  color: #fff;
+  font-size: 0.95rem;
+}
+.field-manual ol, .field-manual ul {
+  margin: 8px 0 0;
+  padding-left: 24px;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.field-manual li {
+  margin-bottom: 6px;
+}
+.warning {
+  color: var(--power);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  background: rgba(244, 185, 66, 0.1);
+  border-left: 3px solid var(--power);
+  border-radius: 4px;
+}
+
+/* ---------- Tray & Slots ---------- */
 
 .tray {
   display: flex;
@@ -190,7 +280,7 @@ body {
   border-radius: 10px;
   display: flex;
   flex-direction: column;
-  height: 640px;
+  height: 700px;
   overflow: hidden;
   font-family: "Cascadia Code", "Consolas", monospace;
   font-size: 0.85rem;

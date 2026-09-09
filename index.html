@@ -15,9 +15,60 @@
 
 <main class="app">
 
-  <section class="map-panel">
-    <h2>City Map</h2>
+  <!-- 1. MISSION BRIEFING -->
+  <div class="mission-briefing">
+    <h2>Your Mission: City Pulse Dispatch</h2>
+    <p>Welcome to the Emergency Command Center. The city's automated dispatch AI has malfunctioned, and it is up to you to coordinate the emergency response. You must fix the system errors, uncover hidden data, and deploy your limited rescue teams to generate the final exit code!</p>
 
+    <h3>Your Objectives</h3>
+    <p>To unlock the Emergency-Command Exit, you need to complete four critical tasks:</p>
+    <ul>
+      <li><strong>Correct the AI Errors:</strong> Review the live emergency reports. The AI has misclassified three of them. Click the label chips on the reports to change them to the correct category.</li>
+      <li><strong>Flag the Duplicates:</strong> The system is chaotic and receiving double reports. Find the duplicate pairs and click the toggle button to cross them out.</li>
+      <li><strong>Unlock the Backup Envelope:</strong> A vital hidden report is locked away. Figure out the 3-digit access code to reveal it (Hint: try counting the valid, non-duplicate reports in each district).</li>
+      <li><strong>Deploy Rescue Teams:</strong> Place your available emergency tokens (Medical, Power, and Transport) onto the city map based on the rules in your Field Manual.</li>
+    </ul>
+
+    <h3>How to Play</h3>
+    <ul>
+      <li><strong>mouse and keyboard:</strong> Use the terminal to input command to fix the broken system. Click the amount of workers are needed in every district.</li>
+      <li><strong>Track Your Progress:</strong> Keep an eye on the live checklist on your screen. It will automatically check off items as you successfully fix labels, flag duplicates, unlock the envelope, and correctly allocate teams.</li>
+      <li><strong>Submit the Code:</strong> Placing tokens on the map automatically generates a master code at the bottom of the screen. When your progress checklist is fully complete, click "Submit This Code" to escape!</li>
+    </ul>
+
+    <h3>Important Dispatch Tips</h3>
+    <ul>
+      <li><strong>Consult the Field Manual:</strong> This panel is always visible and contains all the rules for how teams must be deployed.</li>
+      <li><strong>Manage Your Resources:</strong> You only have 9 rescue tokens, which is not enough to solve every single emergency. This is intentional! You must prioritize the most critical situations based on the manual's rules.</li>
+    </ul>
+  </div>
+
+  <!-- 2. CONTROL PANEL (Terminal) -->
+  <section class="terminal-panel">
+    <div class="terminal-log" id="log"></div>
+    <div class="terminal-input-row">
+      <span class="prompt">&gt;</span>
+      <input id="terminal-input" type="text" autocomplete="off" spellcheck="false" placeholder="type 'help'" />
+    </div>
+  </section>
+
+  <!-- 3. CITY MAP & FIELD MANUAL -->
+  <section class="map-panel">
+    <div class="field-manual">
+      <h2>Field Manual</h2>
+      <div class="manual-section">
+        <strong>Impact Rules:</strong>
+        <ul>
+          <li>Actionable report: 1 unit. Inconvenience with working alternative: 0 units.</li>
+          <li>Medical: Life-sustaining equipment or medication: 2 units.</li>
+          <li>Power: Incidents involving flooding risk: 2 units.</li>
+          <li>Transport: Failures affecting access to an evacuation centre: 2 units.</li>
+        </ul>
+        <p class="warning">⚠️ RESOURCE WARNING: You have 9 rescue teams but demand is higher. You must leave non-critical issues unassigned based on the rules.</p>
+      </div>
+    </div>
+
+    <h2>City Map</h2>
     <div class="tray" id="tray">
       <div class="tray-token" data-type="Medical">
         <span class="tray-icon">⚕</span>
@@ -62,14 +113,6 @@
           <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
         </div>
       </div>
-    </div>
-  </section>
-
-  <section class="terminal-panel">
-    <div class="terminal-log" id="log"></div>
-    <div class="terminal-input-row">
-      <span class="prompt">&gt;</span>
-      <input id="terminal-input" type="text" autocomplete="off" spellcheck="false" placeholder="type 'help'" />
     </div>
   </section>
 

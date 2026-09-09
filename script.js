@@ -38,8 +38,17 @@ const TYPES = ["Medical", "Power", "Transport"];
 
 // ---------- Mutable state ----------
 
+function shuffleArray(array) {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
 const state = {
-  cards: CARDS.map((c) => ({ ...c, currentLabel: c.aiLabel, isDuplicate: false })),
+  cards: shuffleArray(CARDS).map((c) => ({ ...c, currentLabel: c.aiLabel, isDuplicate: false })),
   hiddenCardRevealed: false,
   hiddenCard: null,
   envelopeOpened: false,
@@ -199,13 +208,7 @@ function cmdInventory() {
 }
 
 function cmdRules() {
-  logBlock([
-    "IMPACT RULES",
-    "- Base rule: an actionable report needs 1 unit of the matching type. A mere inconvenience with a working alternative needs 0 units.",
-    "- A medical report involving life-sustaining equipment or medication requires 2 medical units.",
-    "- A power incident involving flooding risk requires 2 power crews.",
-    "- A transport failure affecting access to an evacuation centre requires 2 transport teams.",
-  ]);
+  log("Please refer to the Field Manual on the dashboard for the impact rules and resource warning.", "system");
 }
 
 function cmdOpenEnvelope(args) {
@@ -261,7 +264,7 @@ function cmdHelp() {
     "relabel <id> <label> — change a card's classification",
     "flag-duplicate <id> — mark a card as a duplicate",
     "inventory — show remaining unplaced units",
-    "rules — show the impact rules",
+    "rules — refer to the field manual",
     "open-envelope <code> — attempt to unlock the backup report",
     "submit-code <code> — submit the final response code",
     "hint — get a soft nudge",
