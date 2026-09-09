@@ -13,64 +13,143 @@
   <p class="subtitle">Emergency Command Terminal — Storm Response Protocol</p>
 </header>
 
+<div class="briefing">
+  <strong>Objective:</strong> Audit the AI's emergency reports, fix its data errors, allocate the city's response units across Centrum, Noord &amp; Zuidoost, then submit the correct response code to unlock the exit.
+</div>
+
+<section class="reports-panel" id="reports-panel">
+  <div class="reports-panel-header">
+    <h2>Emergency Reports</h2>
+    <div class="envelope-widget" id="envelope-widget">
+      <span class="envelope-label">Backup envelope:</span>
+      <input id="envelope-code-input" type="text" inputmode="numeric" maxlength="3" placeholder="3-digit code" autocomplete="off" />
+      <button type="button" id="envelope-unlock-btn">Unlock</button>
+      <span class="envelope-status" id="envelope-status"></span>
+    </div>
+  </div>
+  <p class="envelope-explainer">A sealed backup envelope was recovered at the scene — city systems sometimes drop reports during an outage, and this may hold one the AI never saw. If one district's <strong>valid</strong> report count (after removing duplicates) looks low next to the other two, that's likely where it's missing from. The lock code is the three districts' valid counts, in order — Centrum, Noord, Zuidoost.</p>
+  <div class="reports-table-wrap">
+    <table class="reports-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>District</th>
+          <th>Message</th>
+          <th>AI Label</th>
+          <th>Current Label</th>
+          <th>Duplicate</th>
+        </tr>
+      </thead>
+      <tbody id="reports-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
 <main class="app">
 
-  <section class="map-panel">
-    <h2>City Map</h2>
+  <div class="left-column">
 
-    <div class="tray" id="tray">
-      <div class="tray-token" data-type="Medical">
-        <span class="tray-icon">⚕</span>
-        <span class="tray-label">Medical</span>
-        <span class="tray-count" id="tray-count-Medical">3</span>
-      </div>
-      <div class="tray-token" data-type="Power">
-        <span class="tray-icon">⚡</span>
-        <span class="tray-label">Power</span>
-        <span class="tray-count" id="tray-count-Power">4</span>
-      </div>
-      <div class="tray-token" data-type="Transport">
-        <span class="tray-icon">🚌</span>
-        <span class="tray-label">Transport</span>
-        <span class="tray-count" id="tray-count-Transport">2</span>
-      </div>
-    </div>
-    <p class="tray-hint" id="tray-hint">Select a unit above, then click a matching slot to deploy it. Click a filled slot to recall a unit.</p>
+    <section class="map-panel">
+      <h2>City Map</h2>
 
-    <div class="districts" id="districts">
-      <div class="district" data-district="Centrum">
-        <h3>Centrum</h3>
-        <div class="slots">
-          <div class="slot" data-type="Medical"><span class="slot-label">Medical</span><span class="slot-count">0</span></div>
-          <div class="slot" data-type="Power"><span class="slot-label">Power</span><span class="slot-count">0</span></div>
-          <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
+      <div class="tray" id="tray">
+        <div class="tray-token" data-type="Medical">
+          <span class="tray-icon">⚕</span>
+          <span class="tray-label">Medical</span>
+          <span class="tray-count" id="tray-count-Medical">3</span>
+        </div>
+        <div class="tray-token" data-type="Power">
+          <span class="tray-icon">⚡</span>
+          <span class="tray-label">Power</span>
+          <span class="tray-count" id="tray-count-Power">4</span>
+        </div>
+        <div class="tray-token" data-type="Transport">
+          <span class="tray-icon">🚌</span>
+          <span class="tray-label">Transport</span>
+          <span class="tray-count" id="tray-count-Transport">2</span>
         </div>
       </div>
-      <div class="district" data-district="Noord">
-        <h3>Noord</h3>
-        <div class="slots">
-          <div class="slot" data-type="Medical"><span class="slot-label">Medical</span><span class="slot-count">0</span></div>
-          <div class="slot" data-type="Power"><span class="slot-label">Power</span><span class="slot-count">0</span></div>
-          <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
+      <p class="tray-hint" id="tray-hint">Select a unit above, then click a matching slot to deploy it. Click a filled slot to recall a unit.</p>
+
+      <div class="districts" id="districts">
+        <div class="district" data-district="Centrum">
+          <h3>Centrum</h3>
+          <div class="slots">
+            <div class="slot" data-type="Medical"><span class="slot-label">Medical</span><span class="slot-count">0</span></div>
+            <div class="slot" data-type="Power"><span class="slot-label">Power</span><span class="slot-count">0</span></div>
+            <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
+          </div>
+        </div>
+        <div class="district" data-district="Noord">
+          <h3>Noord</h3>
+          <div class="slots">
+            <div class="slot" data-type="Medical"><span class="slot-label">Medical</span><span class="slot-count">0</span></div>
+            <div class="slot" data-type="Power"><span class="slot-label">Power</span><span class="slot-count">0</span></div>
+            <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
+          </div>
+        </div>
+        <div class="district" data-district="Zuidoost">
+          <h3>Zuidoost</h3>
+          <div class="slots">
+            <div class="slot" data-type="Medical"><span class="slot-label">Medical</span><span class="slot-count">0</span></div>
+            <div class="slot" data-type="Power"><span class="slot-label">Power</span><span class="slot-count">0</span></div>
+            <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
+          </div>
         </div>
       </div>
-      <div class="district" data-district="Zuidoost">
-        <h3>Zuidoost</h3>
-        <div class="slots">
-          <div class="slot" data-type="Medical"><span class="slot-label">Medical</span><span class="slot-count">0</span></div>
-          <div class="slot" data-type="Power"><span class="slot-label">Power</span><span class="slot-count">0</span></div>
-          <div class="slot" data-type="Transport"><span class="slot-label">Transport</span><span class="slot-count">0</span></div>
-        </div>
+
+      <div class="checklist" id="checklist">
+        <div class="checklist-item" data-key="labels"><span class="check-icon">○</span><span class="check-text">Misclassified reports corrected</span></div>
+        <div class="checklist-item" data-key="duplicates"><span class="check-icon">○</span><span class="check-text">Duplicate reports flagged</span></div>
+        <div class="checklist-item" data-key="envelope"><span class="check-icon">○</span><span class="check-text">Backup envelope unlocked</span></div>
+        <div class="checklist-item" data-key="allocation"><span class="check-icon">○</span><span class="check-text">Response teams allocated correctly</span></div>
       </div>
-    </div>
-  </section>
+
+      <div class="code-readout">
+        <div class="code-readout-breakdown" id="code-breakdown">Centrum 000 · Noord 000 · Zuidoost 000</div>
+        <div class="code-readout-row">
+          <span class="code-readout-label">Code from current map:</span>
+          <span class="code-readout-value" id="code-value">000000000</span>
+          <button type="button" id="submit-code-btn">Submit This Code</button>
+        </div>
+        <p class="submit-status" id="submit-status"></p>
+      </div>
+    </section>
+
+    <section class="field-manual">
+      <h2>Field Manual</h2>
+      <div class="field-manual-block">
+        <h3>Impact rules</h3>
+        <ul>
+          <li>An actionable report needs 1 unit of the matching type. A mere inconvenience with a working alternative needs 0 units.</li>
+          <li>A medical report involving life-sustaining equipment or medication requires 2 medical units.</li>
+          <li>A power incident involving flooding risk requires 2 power crews.</li>
+          <li>A transport failure affecting access to an evacuation centre requires 2 transport teams.</li>
+          <li>There usually aren't enough units to cover every verified need — prioritize the most urgent, life-threatening situations first. Some correctly-audited reports may still receive no team.</li>
+        </ul>
+      </div>
+      <div class="field-manual-block">
+        <h3>How to play</h3>
+        <ul class="command-list">
+          <li>Click a <strong>label</strong> in the Emergency Reports table to fix a wrong classification.</li>
+          <li>Click <strong>Flag duplicate</strong> on a repeated report — click again to undo.</li>
+          <li>Enter the district report counts into the <strong>Backup envelope</strong> box above the table.</li>
+          <li>Click a unit above the map, then click a district slot to deploy or recall it.</li>
+          <li>Watch the checklist above the code readout — it tracks your real progress toward unlocking the exit.</li>
+          <li>Click <strong>Submit This Code</strong> once your allocation is ready.</li>
+        </ul>
+      </div>
+      <div class="field-manual-block">
+        <h3>Stuck?</h3>
+        <button type="button" id="hint-btn">Get a Hint</button>
+      </div>
+    </section>
+
+  </div>
 
   <section class="terminal-panel">
+    <h2 class="terminal-heading">Activity Log</h2>
     <div class="terminal-log" id="log"></div>
-    <div class="terminal-input-row">
-      <span class="prompt">&gt;</span>
-      <input id="terminal-input" type="text" autocomplete="off" spellcheck="false" placeholder="type 'help'" />
-    </div>
   </section>
 
 </main>

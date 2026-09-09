@@ -25,7 +25,6 @@ const HIDDEN_CARD = {
 };
 
 const ENVELOPE_CODE = "433";
-const FINAL_CODE = "310012020";
 
 const CORRECT_ALLOCATION = {
   Centrum: { Medical: 3, Power: 1, Transport: 0 },
@@ -35,6 +34,8 @@ const CORRECT_ALLOCATION = {
 
 const DISTRICTS = ["Centrum", "Noord", "Zuidoost"];
 const TYPES = ["Medical", "Power", "Transport"];
+
+const HINT_TEXT = "Hint: compare each district's valid report count to the average across all three districts.";
 
 // ---------- Mutable state ----------
 
@@ -69,25 +70,80 @@ function remaining(type) {
   return UNITS_TOTAL[type] - placedTotal(type);
 }
 
+function districtCode(district) {
+  const p = state.placed[district];
+  return "" + p.Medical + p.Power + p.Transport;
+}
+
+function computeDerivedCode() {
+  return DISTRICTS.map(districtCode).join("");
+}
+
+// Single source of truth for win-readiness, shared by the checklist display
+// and the actual submit check — a fully-checked list is always winnable,
+// since the code is derived directly from `placed`, not typed separately.
+function computeWinConditions() {
+  return {
+    labels:
+      findCard("C1")?.currentLabel === "Medical" &&
+      findCard("C4")?.currentLabel === "Medical" &&
+      findCard("N1")?.currentLabel === "Medical",
+    duplicates: findCard("N4")?.isDuplicate === true && findCard("Z3")?.isDuplicate === true,
+    envelope: state.envelopeOpened,
+    allocation: DISTRICTS.every((d) => TYPES.every((t) => state.placed[d][t] === CORRECT_ALLOCATION[d][t])),
+  };
+}
+
 // ---------- DOM refs ----------
 
 const logEl = document.getElementById("log");
-const inputEl = document.getElementById("terminal-input");
 const trayEl = document.getElementById("tray");
 const districtsEl = document.getElementById("districts");
+const reportsPanelEl = document.getElementById("reports-panel");
+const reportsTbodyEl = document.getElementById("reports-tbody");
+const codeBreakdownEl = document.getElementById("code-breakdown");
+const codeValueEl = document.getElementById("code-value");
+const submitCodeBtn = document.getElementById("submit-code-btn");
+const envelopeWidgetEl = document.getElementById("envelope-widget");
+const envelopeInputEl = document.getElementById("envelope-code-input");
+const envelopeUnlockBtn = document.getElementById("envelope-unlock-btn");
+const envelopeStatusEl = document.getElementById("envelope-status");
+const hintBtn = document.getElementById("hint-btn");
+const checklistEl = document.getElementById("checklist");
+const submitStatusEl = document.getElementById("submit-status");
 
-// ---------- Terminal rendering ----------
+// ---------- Activity Log rendering ----------
 
-function log(text, cls) {
+let currentBlock = null;
+let currentBlockOutcome = "neutral";
+
+function appendLine(container, text, cls) {
   const div = document.createElement("div");
   div.className = "log-line" + (cls ? " " + cls : "");
   div.textContent = text;
-  logEl.appendChild(div);
+  container.appendChild(div);
+}
+
+function log(text, cls) {
+  appendLine(currentBlock || logEl, text, cls);
+  if (cls === "error") currentBlockOutcome = "error";
+  else if (cls === "success" && currentBlockOutcome !== "error") currentBlockOutcome = "success";
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-function logBlock(lines, cls) {
-  lines.forEach((line) => log(line, cls));
+// Groups every log() call made inside fn into one visually-bordered block,
+// colored by the most severe outcome logged (error > success > neutral).
+function runAction(fn) {
+  currentBlock = document.createElement("div");
+  currentBlock.className = "log-block";
+  logEl.appendChild(currentBlock);
+  currentBlockOutcome = "neutral";
+
+  fn();
+
+  currentBlock.classList.add("outcome-" + currentBlockOutcome);
+  currentBlock = null;
+  logEl.scrollTop = logEl.scrollHeight;
 }
 
 // ---------- Map rendering ----------
@@ -115,12 +171,198 @@ function renderDistricts() {
   });
 }
 
+function renderCodeReadout() {
+  codeBreakdownEl.textContent =
+    "Centrum " + districtCode("Centrum") +
+    " · Noord " + districtCode("Noord") +
+    " · Zuidoost " + districtCode("Zuidoost");
+  codeValueEl.textContent = computeDerivedCode();
+}
+
+function renderChecklist() {
+  const conditions = computeWinConditions();
+  let doneCount = 0;
+  checklistEl.querySelectorAll(".checklist-item").forEach((itemEl) => {
+    const key = itemEl.dataset.key;
+    const done = !!conditions[key];
+    if (done) doneCount++;
+    itemEl.classList.toggle("done", done);
+    itemEl.querySelector(".check-icon").textContent = done ? "✓" : "○";
+  });
+
+  if (state.won) {
+    submitStatusEl.textContent = "";
+  } else if (doneCount === 4) {
+    submitStatusEl.textContent = "All requirements met — ready to submit.";
+    submitStatusEl.className = "submit-status ready";
+  } else {
+    submitStatusEl.textContent = doneCount + " of 4 requirements met.";
+    submitStatusEl.className = "submit-status";
+  }
+
+  return conditions;
+}
+
 function renderAll() {
   renderTray();
   renderDistricts();
+  renderCodeReadout();
+  renderChecklist();
 }
 
-// ---------- Map interaction ----------
+// ---------- Reports table rendering ----------
+
+function renderReportsTable() {
+  reportsTbodyEl.innerHTML = "";
+  visibleCards().forEach((card) => {
+    const tr = document.createElement("tr");
+    tr.dataset.cardId = card.id;
+    if (card.currentLabel !== card.aiLabel) tr.classList.add("relabeled");
+    if (card.isDuplicate) tr.classList.add("duplicate");
+
+    const tdId = document.createElement("td");
+    tdId.textContent = card.id;
+
+    const tdDistrict = document.createElement("td");
+    tdDistrict.textContent = card.district;
+
+    const tdMsg = document.createElement("td");
+    tdMsg.className = "msg-cell";
+    tdMsg.textContent = card.message;
+
+    const tdAi = document.createElement("td");
+    tdAi.innerHTML = '<span class="label-badge ' + card.aiLabel + '">' + card.aiLabel + "</span>";
+
+    const tdCurrent = document.createElement("td");
+    tdCurrent.className = "current-label-cell";
+    const chipsWrap = document.createElement("div");
+    chipsWrap.className = "label-chips";
+    TYPES.forEach((type) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "label-chip " + type + (card.currentLabel === type ? " active" : "");
+      chip.dataset.action = "relabel";
+      chip.dataset.label = type;
+      chip.textContent = type;
+      chipsWrap.appendChild(chip);
+    });
+    tdCurrent.appendChild(chipsWrap);
+
+    const tdDup = document.createElement("td");
+    const dupBtn = document.createElement("button");
+    dupBtn.type = "button";
+    dupBtn.className = "dup-toggle" + (card.isDuplicate ? " flagged" : "");
+    dupBtn.dataset.action = "toggle-duplicate";
+    dupBtn.textContent = card.isDuplicate ? "Duplicate — undo" : "Flag duplicate";
+    tdDup.appendChild(dupBtn);
+
+    tr.append(tdId, tdDistrict, tdMsg, tdAi, tdCurrent, tdDup);
+    reportsTbodyEl.appendChild(tr);
+  });
+}
+
+function flashReportsPanel() {
+  reportsPanelEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  reportsPanelEl.classList.add("flash");
+  setTimeout(() => reportsPanelEl.classList.remove("flash"), 900);
+}
+
+function flashRow(id) {
+  const row = reportsTbodyEl.querySelector('tr[data-card-id="' + id.toUpperCase() + '"]');
+  if (!row) return;
+  row.classList.add("flash-row");
+  setTimeout(() => row.classList.remove("flash-row"), 900);
+}
+
+// ---------- Actions ----------
+
+function setCardLabel(id, label) {
+  const card = findCard(id);
+  if (!card || card.currentLabel === label) return;
+  card.currentLabel = label;
+  runAction(() => log(card.id + " relabeled to " + label + ".", "success"));
+  renderReportsTable();
+  flashRow(card.id);
+  renderChecklist();
+}
+
+function toggleDuplicate(id) {
+  const card = findCard(id);
+  if (!card) return;
+  card.isDuplicate = !card.isDuplicate;
+  runAction(() => {
+    log(
+      card.id + (card.isDuplicate ? " flagged as a duplicate report." : " duplicate flag removed."),
+      "success"
+    );
+  });
+  renderReportsTable();
+  flashRow(card.id);
+  renderChecklist();
+}
+
+function unlockEnvelope() {
+  if (state.envelopeOpened) return;
+  const code = envelopeInputEl.value.trim();
+  if (code !== ENVELOPE_CODE) {
+    envelopeStatusEl.textContent = "Incorrect code.";
+    envelopeStatusEl.className = "envelope-status error";
+    runAction(() => log("Envelope code " + (code || "(empty)") + " rejected.", "error"));
+    return;
+  }
+  state.envelopeOpened = true;
+  state.hiddenCardRevealed = true;
+  state.hiddenCard = { ...HIDDEN_CARD, currentLabel: HIDDEN_CARD.aiLabel, isDuplicate: false };
+
+  envelopeStatusEl.textContent = "Unlocked ✓";
+  envelopeStatusEl.className = "envelope-status success";
+  envelopeInputEl.disabled = true;
+  envelopeUnlockBtn.disabled = true;
+  envelopeWidgetEl.classList.add("unlocked");
+
+  runAction(() => {
+    log("Envelope unlocked.", "success");
+    log("Backup report " + state.hiddenCard.id + " recovered:");
+    log('"' + state.hiddenCard.message + '"');
+  });
+  renderReportsTable();
+  flashReportsPanel();
+  renderChecklist();
+}
+
+function showHint() {
+  runAction(() => log(HINT_TEXT, "system"));
+}
+
+const CHECKLIST_LABELS = {
+  labels: "misclassified reports corrected",
+  duplicates: "duplicate reports flagged",
+  envelope: "backup envelope unlocked",
+  allocation: "response teams allocated correctly",
+};
+
+function submitCode() {
+  const code = computeDerivedCode();
+  const conditions = computeWinConditions();
+  const missing = Object.keys(conditions).filter((k) => !conditions[k]);
+
+  runAction(() => {
+    log("submit-code " + code);
+    if (missing.length === 0) {
+      state.won = true;
+      log("EMERGENCY-COMMAND EXIT UNLOCKED", "success");
+      log("The response teams are deployed. Storm protocol complete.", "success");
+      renderAll();
+    } else {
+      log(
+        "Not ready yet — still missing: " + missing.map((k) => CHECKLIST_LABELS[k]).join(", ") + ".",
+        "error"
+      );
+    }
+  });
+}
+
+// ---------- Interaction wiring ----------
 
 trayEl.addEventListener("click", (e) => {
   const tokenEl = e.target.closest(".tray-token");
@@ -150,161 +392,29 @@ districtsEl.addEventListener("click", (e) => {
   renderAll();
 });
 
-// ---------- Command implementations ----------
+submitCodeBtn.addEventListener("click", submitCode);
 
-function cmdList() {
-  const cards = visibleCards();
-  log("ID    DISTRICT    LABEL        DUP  MESSAGE", "system");
-  cards.forEach((c) => {
-    const id = c.id.padEnd(6);
-    const district = c.district.padEnd(12);
-    const label = c.currentLabel.padEnd(13);
-    const dup = (c.isDuplicate ? "yes" : "no").padEnd(5);
-    log(id + district + label + dup + c.message);
-  });
-}
-
-function cmdShow(args) {
-  if (!args[0]) return log("Usage: show <card_id>", "error");
-  const card = findCard(args[0]);
-  if (!card) return log("No such card: " + args[0], "error");
-  log("Card " + card.id + " — " + card.district);
-  log('"' + card.message + '"');
-  log("AI label: " + card.aiLabel + " | Current label: " + card.currentLabel + " | Duplicate: " + (card.isDuplicate ? "yes" : "no"));
-}
-
-function cmdRelabel(args) {
-  const [id, rawLabel] = args;
-  if (!id || !rawLabel) return log("Usage: relabel <card_id> <Medical|Power|Transport>", "error");
-  const label = TYPES.find((t) => t.toLowerCase() === rawLabel.toLowerCase());
-  if (!label) return log("Invalid label. Use Medical, Power, or Transport.", "error");
-  const card = findCard(id);
-  if (!card) return log("No such card: " + id, "error");
-  card.currentLabel = label;
-  log(card.id + " relabeled to " + label + ".", "success");
-}
-
-function cmdFlagDuplicate(args) {
-  if (!args[0]) return log("Usage: flag-duplicate <card_id>", "error");
-  const card = findCard(args[0]);
-  if (!card) return log("No such card: " + args[0], "error");
-  card.isDuplicate = true;
-  log(card.id + " flagged as a duplicate report.", "success");
-}
-
-function cmdInventory() {
-  TYPES.forEach((type) => {
-    log(type + ": " + remaining(type) + " / " + UNITS_TOTAL[type] + " remaining");
-  });
-}
-
-function cmdRules() {
-  logBlock([
-    "IMPACT RULES",
-    "- Base rule: an actionable report needs 1 unit of the matching type. A mere inconvenience with a working alternative needs 0 units.",
-    "- A medical report involving life-sustaining equipment or medication requires 2 medical units.",
-    "- A power incident involving flooding risk requires 2 power crews.",
-    "- A transport failure affecting access to an evacuation centre requires 2 transport teams.",
-  ]);
-}
-
-function cmdOpenEnvelope(args) {
-  if (state.envelopeOpened) return log("The envelope is already open.", "system");
-  const code = args[0];
-  if (!code) return log("Usage: open-envelope <code>", "error");
-  if (code !== ENVELOPE_CODE) return log("Incorrect code.", "error");
-  state.envelopeOpened = true;
-  state.hiddenCardRevealed = true;
-  state.hiddenCard = { ...HIDDEN_CARD, currentLabel: HIDDEN_CARD.aiLabel, isDuplicate: false };
-  log("Envelope unlocked.", "success");
-  log("Backup report " + state.hiddenCard.id + " recovered:");
-  log('"' + state.hiddenCard.message + '"');
-}
-
-function cmdSubmitCode(args) {
-  const code = args[0];
-  if (!code) return log("Usage: submit-code <code>", "error");
-
-  const labelsFixed =
-    findCard("C1")?.currentLabel === "Medical" &&
-    findCard("C4")?.currentLabel === "Medical" &&
-    findCard("N1")?.currentLabel === "Medical";
-
-  const duplicatesFlagged =
-    findCard("N4")?.isDuplicate === true && findCard("Z3")?.isDuplicate === true;
-
-  const allocationMatches = DISTRICTS.every((d) =>
-    TYPES.every((t) => state.placed[d][t] === CORRECT_ALLOCATION[d][t])
-  );
-
-  const codeMatches = code === FINAL_CODE;
-
-  if (labelsFixed && duplicatesFlagged && state.envelopeOpened && allocationMatches && codeMatches) {
-    state.won = true;
-    log("EMERGENCY-COMMAND EXIT UNLOCKED", "success");
-    log("The response teams are deployed. Storm protocol complete.", "success");
-    renderAll();
-  } else {
-    log("Incorrect. The city remains in chaos.", "error");
-  }
-}
-
-function cmdHint() {
-  log("Hint: compare each district's valid report count to the average across all three districts.", "system");
-}
-
-function cmdHelp() {
-  logBlock([
-    "COMMANDS",
-    "list — show all known report cards",
-    "show <id> — show one card's full detail",
-    "relabel <id> <label> — change a card's classification",
-    "flag-duplicate <id> — mark a card as a duplicate",
-    "inventory — show remaining unplaced units",
-    "rules — show the impact rules",
-    "open-envelope <code> — attempt to unlock the backup report",
-    "submit-code <code> — submit the final response code",
-    "hint — get a soft nudge",
-    "help — show this list",
-  ]);
-}
-
-const COMMANDS = {
-  list: cmdList,
-  show: cmdShow,
-  relabel: cmdRelabel,
-  "flag-duplicate": cmdFlagDuplicate,
-  inventory: cmdInventory,
-  rules: cmdRules,
-  "open-envelope": cmdOpenEnvelope,
-  "submit-code": cmdSubmitCode,
-  hint: cmdHint,
-  help: cmdHelp,
-};
-
-function runCommand(raw) {
-  const trimmed = raw.trim();
-  if (!trimmed) return;
-  log(trimmed, "input");
-  const [cmd, ...args] = trimmed.split(/\s+/);
-  const handler = COMMANDS[cmd.toLowerCase()];
-  if (!handler) {
-    log("Unknown command: " + cmd + ". Type 'help' for a list of commands.", "error");
-    return;
-  }
-  handler(args);
-}
-
-// ---------- Init ----------
-
-inputEl.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    const value = inputEl.value;
-    inputEl.value = "";
-    runCommand(value);
+reportsTbodyEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const row = btn.closest("tr");
+  const cardId = row.dataset.cardId;
+  if (btn.dataset.action === "relabel") {
+    setCardLabel(cardId, btn.dataset.label);
+  } else if (btn.dataset.action === "toggle-duplicate") {
+    toggleDuplicate(cardId);
   }
 });
 
-log("City AI dashboard online. Storm response protocol active.", "system");
-log("Type 'help' to see available commands.", "system");
+envelopeUnlockBtn.addEventListener("click", unlockEnvelope);
+envelopeInputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") unlockEnvelope();
+});
+
+hintBtn.addEventListener("click", showHint);
+
+// ---------- Init ----------
+
+appendLine(logEl, "City AI dashboard online. Storm response protocol active.", "system");
+renderReportsTable();
 renderAll();
